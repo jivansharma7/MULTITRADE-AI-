@@ -1,0 +1,239 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account settings, currency/timezone preferences, compliance country, and virtual paper trading account balance.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "plan": { "type": "string", "enum": ["FREE", "PRO", "PREMIUM", "INSTITUTIONAL"] },
+        "quoteCurrency": { "type": "string", "enum": ["USD", "INR", "EUR", "GBP"] },
+        "timezone": { "type": "string", "maxLength": 80 },
+        "countryCode": { "type": "string", "maxLength": 8 },
+        "paperBalanceUsd": { "type": "number" },
+        "realizedPnlUsd": { "type": "number" },
+        "liveTradingEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "plan", "quoteCurrency", "paperBalanceUsd", "realizedPnlUsd", "liveTradingEnabled"]
+    },
+    "WatchlistToken": {
+      "title": "WatchlistToken",
+      "description": "Token saved to a user's personal watchlist.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mint": { "type": "string", "minLength": 20, "maxLength": 64 },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "addedPriceUsd": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mint", "symbol", "name", "addedPriceUsd", "addedAt"]
+    },
+    "PaperPosition": {
+      "title": "PaperPosition",
+      "description": "Open simulated paper trading position.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mint": { "type": "string", "minLength": 20, "maxLength": 64 },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "quantity": { "type": "number" },
+        "avgEntryPriceUsd": { "type": "number" },
+        "totalCostUsd": { "type": "number" },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mint", "symbol", "name", "quantity", "avgEntryPriceUsd", "totalCostUsd", "openedAt"]
+    },
+    "PaperOrder": {
+      "title": "PaperOrder",
+      "description": "Simulated paper buy or sell order execution record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mint": { "type": "string", "minLength": 20, "maxLength": 64 },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "side": { "type": "string", "enum": ["BUY", "SELL"] },
+        "quantity": { "type": "number" },
+        "quotedPriceUsd": { "type": "number" },
+        "executedPriceUsd": { "type": "number" },
+        "slippageBps": { "type": "number" },
+        "feeUsd": { "type": "number" },
+        "notionalUsd": { "type": "number" },
+        "realizedPnlUsd": { "type": "number" },
+        "executedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mint", "symbol", "side", "quantity", "quotedPriceUsd", "executedPriceUsd", "slippageBps", "feeUsd", "notionalUsd", "executedAt"]
+    },
+    "UserAlert": {
+      "title": "UserAlert",
+      "description": "User-configured alert rule or triggered in-app notification.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "type": { "type": "string", "enum": ["NEW_TOKEN", "HIGH_AI_SCORE", "WHALE_BUY", "WHALE_SELL", "LIQUIDITY_CHANGE", "DEV_ACTIVITY", "CRITICAL_RISK", "PRICE_MOVE", "STRATEGY_SIGNAL", "DRAWDOWN"] },
+        "mint": { "type": "string", "maxLength": 64 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "condition": { "type": "string", "maxLength": 200 },
+        "threshold": { "type": "number" },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "condition", "enabled", "createdAt"]
+    },
+    "BacktestRecord": {
+      "title": "BacktestRecord",
+      "description": "Saved strategy backtest configuration and deterministic metrics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mint": { "type": "string", "minLength": 20, "maxLength": 64 },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "strategyId": { "type": "string", "maxLength": 64 },
+        "timeframe": { "type": "string", "maxLength": 16 },
+        "returnPct": { "type": "number" },
+        "winRatePct": { "type": "number" },
+        "maxDrawdownPct": { "type": "number" },
+        "profitFactor": { "type": "number" },
+        "totalTrades": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mint", "symbol", "strategyId", "timeframe", "returnPct", "winRatePct", "maxDrawdownPct", "totalTrades", "createdAt"]
+    },
+    "ConnectedWallet": {
+      "title": "ConnectedWallet",
+      "description": "Public Solana wallet address metadata only (never stores private keys or seed phrases).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "publicAddress": { "type": "string", "minLength": 32, "maxLength": 64 },
+        "provider": { "type": "string", "enum": ["Phantom", "Solflare", "ReadOnly", "Other"] },
+        "network": { "type": "string", "enum": ["mainnet-beta", "devnet"] },
+        "connectedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "publicAddress", "provider", "network", "connectedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable user activity audit trail.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "action": { "type": "string", "maxLength": 100 },
+        "detail": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "action", "detail", "timestamp"]
+    },
+    "ManagedAccount": {
+      "title": "ManagedAccount",
+      "description": "User-added trading desk or non-custodial public wallet account with AI agent risk parameters.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "kind": { "type": "string", "enum": ["PAPER_DESK", "SOLANA_WALLET"] },
+        "walletAddress": { "type": "string", "maxLength": 64 },
+        "walletProvider": { "type": "string", "enum": ["Phantom", "Solflare", "ReadOnly", "Paper"] },
+        "riskProfile": { "type": "string", "enum": ["CONSERVATIVE", "BALANCED", "AGGRESSIVE"] },
+        "mandateMode": { "type": "string", "enum": ["ADVISORY_ONLY", "PAPER_AUTOPILOT"] },
+        "allocatedUsd": { "type": "number" },
+        "maxPositionPct": { "type": "number" },
+        "stopLossPct": { "type": "number" },
+        "takeProfitPct": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "kind", "riskProfile", "mandateMode", "allocatedUsd", "maxPositionPct", "stopLossPct", "takeProfitPct", "createdAt", "updatedAt"]
+    },
+    "TradeProposal": {
+      "title": "TradeProposal",
+      "description": "AI agent generated portfolio management or best-trade recommendation.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "accountId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "action": { "type": "string", "enum": ["BUY", "SELL", "TRIM", "HOLD"] },
+        "mint": { "type": "string", "minLength": 20, "maxLength": 64 },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "currentPriceUsd": { "type": "number" },
+        "suggestedUsd": { "type": "number" },
+        "suggestedQuantity": { "type": "number" },
+        "confidenceScore": { "type": "number" },
+        "riskLevel": { "type": "string", "enum": ["LOW", "MODERATE", "HIGH", "CRITICAL", "UNKNOWN"] },
+        "reason": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["PENDING", "EXECUTED_PAPER", "DISMISSED"] },
+        "sourceAgent": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "accountId", "action", "mint", "symbol", "name", "currentPriceUsd", "suggestedUsd", "suggestedQuantity", "confidenceScore", "riskLevel", "reason", "status", "sourceAgent", "createdAt"]
+    },
+    "WatchedWallet": {
+      "title": "WatchedWallet",
+      "description": "Public Solana wallet address saved to a user's wallet watchlist (read-only public tracking).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "address": { "type": "string", "minLength": 32, "maxLength": 64 },
+        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "address", "label", "addedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile, subscription plan, and paper trading balance."
+    },
+    "/users/{userId}/watchlists/{tokenMint}": {
+      "schema": { "$ref": "#/entities/WatchlistToken" },
+      "description": "Tokens saved in user watchlist."
+    },
+    "/users/{userId}/wallet_watchlists/{walletAddress}": {
+      "schema": { "$ref": "#/entities/WatchedWallet" },
+      "description": "Public Solana wallets saved in user wallet watchlist."
+    },
+    "/users/{userId}/paper_positions/{tokenMint}": {
+      "schema": { "$ref": "#/entities/PaperPosition" },
+      "description": "User open paper trading positions."
+    },
+    "/users/{userId}/paper_orders/{orderId}": {
+      "schema": { "$ref": "#/entities/PaperOrder" },
+      "description": "User paper trading order history."
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/UserAlert" },
+      "description": "User alert rules."
+    },
+    "/users/{userId}/backtests/{backtestId}": {
+      "schema": { "$ref": "#/entities/BacktestRecord" },
+      "description": "Saved strategy backtest results."
+    },
+    "/users/{userId}/connected_wallets/{walletAddress}": {
+      "schema": { "$ref": "#/entities/ConnectedWallet" },
+      "description": "Connected public Solana wallet metadata."
+    },
+    "/users/{userId}/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "User security and action audit trail."
+    },
+    "/users/{userId}/managed_accounts/{accountId}": {
+      "schema": { "$ref": "#/entities/ManagedAccount" },
+      "description": "User-added paper trading desks and public Solana wallet accounts."
+    },
+    "/users/{userId}/trade_proposals/{proposalId}": {
+      "schema": { "$ref": "#/entities/TradeProposal" },
+      "description": "AI agent trade and portfolio rebalancing recommendations."
+    }
+  }
+}

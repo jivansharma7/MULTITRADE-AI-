@@ -1,0 +1,262 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'plan', 'quoteCurrency', 'paperBalanceUsd', 'realizedPnlUsd', 'liveTradingEnabled'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'plan', 'quoteCurrency', 'timezone', 'countryCode', 'paperBalanceUsd', 'realizedPnlUsd', 'liveTradingEnabled', 'createdAt', 'updatedAt'])
+        && data.uid == userId
+        && data.plan in ['FREE', 'PRO', 'PREMIUM', 'INSTITUTIONAL']
+        && data.quoteCurrency in ['USD', 'INR', 'EUR', 'GBP']
+        && data.paperBalanceUsd is number && data.paperBalanceUsd >= 0 && data.paperBalanceUsd <= 1000000000
+        && data.realizedPnlUsd is number
+        && data.liveTradingEnabled is bool
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('timezone' in data) || (data.timezone is string && data.timezone.size() <= 80))
+        && (!('countryCode' in data) || (data.countryCode is string && data.countryCode.size() <= 8));
+    }
+
+    function isValidWatchlistToken(data, userId) {
+      return data.keys().hasAll(['userId', 'mint', 'symbol', 'name', 'addedPriceUsd', 'addedAt'])
+        && data.keys().hasOnly(['userId', 'mint', 'symbol', 'name', 'addedPriceUsd', 'notes', 'addedAt'])
+        && data.userId == userId
+        && data.mint is string && data.mint.size() >= 20 && data.mint.size() <= 64
+        && data.symbol is string && data.symbol.size() >= 1 && data.symbol.size() <= 32
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.addedPriceUsd is number && data.addedPriceUsd >= 0
+        && data.addedAt is string && data.addedAt.size() <= 64
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidPaperPosition(data, userId) {
+      return data.keys().hasAll(['userId', 'mint', 'symbol', 'name', 'quantity', 'avgEntryPriceUsd', 'totalCostUsd', 'openedAt'])
+        && data.keys().hasOnly(['userId', 'mint', 'symbol', 'name', 'quantity', 'avgEntryPriceUsd', 'totalCostUsd', 'openedAt', 'updatedAt'])
+        && data.userId == userId
+        && data.mint is string && data.mint.size() >= 20 && data.mint.size() <= 64
+        && data.symbol is string && data.symbol.size() >= 1 && data.symbol.size() <= 32
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.quantity is number && data.quantity > 0
+        && data.avgEntryPriceUsd is number && data.avgEntryPriceUsd >= 0
+        && data.totalCostUsd is number && data.totalCostUsd >= 0
+        && data.openedAt is string && data.openedAt.size() <= 64;
+    }
+
+    function isValidPaperOrder(data, userId) {
+      return data.keys().hasAll(['userId', 'mint', 'symbol', 'side', 'quantity', 'quotedPriceUsd', 'executedPriceUsd', 'slippageBps', 'feeUsd', 'notionalUsd', 'executedAt'])
+        && data.keys().hasOnly(['userId', 'mint', 'symbol', 'side', 'quantity', 'quotedPriceUsd', 'executedPriceUsd', 'slippageBps', 'feeUsd', 'notionalUsd', 'realizedPnlUsd', 'executedAt'])
+        && data.userId == userId
+        && data.mint is string && data.mint.size() >= 20 && data.mint.size() <= 64
+        && data.symbol is string && data.symbol.size() >= 1 && data.symbol.size() <= 32
+        && data.side in ['BUY', 'SELL']
+        && data.quantity is number && data.quantity > 0
+        && data.quotedPriceUsd is number && data.quotedPriceUsd >= 0
+        && data.executedPriceUsd is number && data.executedPriceUsd >= 0
+        && data.slippageBps is number && data.slippageBps >= 0 && data.slippageBps <= 5000
+        && data.feeUsd is number && data.feeUsd >= 0
+        && data.notionalUsd is number && data.notionalUsd >= 0
+        && data.executedAt is string && data.executedAt.size() <= 64
+        && (!('realizedPnlUsd' in data) || data.realizedPnlUsd is number);
+    }
+
+    function isValidUserAlert(data, userId) {
+      return data.keys().hasAll(['userId', 'type', 'condition', 'enabled', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'type', 'mint', 'symbol', 'condition', 'threshold', 'enabled', 'createdAt'])
+        && data.userId == userId
+        && data.type in ['NEW_TOKEN', 'HIGH_AI_SCORE', 'WHALE_BUY', 'WHALE_SELL', 'LIQUIDITY_CHANGE', 'DEV_ACTIVITY', 'CRITICAL_RISK', 'PRICE_MOVE', 'STRATEGY_SIGNAL', 'DRAWDOWN']
+        && data.condition is string && data.condition.size() >= 1 && data.condition.size() <= 200
+        && data.enabled is bool
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && (!('mint' in data) || (data.mint is string && data.mint.size() <= 64))
+        && (!('symbol' in data) || (data.symbol is string && data.symbol.size() <= 32))
+        && (!('threshold' in data) || data.threshold is number);
+    }
+
+    function isValidBacktestRecord(data, userId) {
+      return data.keys().hasAll(['userId', 'mint', 'symbol', 'strategyId', 'timeframe', 'returnPct', 'winRatePct', 'maxDrawdownPct', 'totalTrades', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'mint', 'symbol', 'strategyId', 'timeframe', 'returnPct', 'winRatePct', 'maxDrawdownPct', 'profitFactor', 'totalTrades', 'createdAt'])
+        && data.userId == userId
+        && data.mint is string && data.mint.size() >= 20 && data.mint.size() <= 64
+        && data.symbol is string && data.symbol.size() >= 1 && data.symbol.size() <= 32
+        && data.strategyId is string && data.strategyId.size() >= 1 && data.strategyId.size() <= 64
+        && data.timeframe is string && data.timeframe.size() >= 1 && data.timeframe.size() <= 16
+        && data.returnPct is number
+        && data.winRatePct is number && data.winRatePct >= 0 && data.winRatePct <= 100
+        && data.maxDrawdownPct is number && data.maxDrawdownPct >= 0 && data.maxDrawdownPct <= 100
+        && data.totalTrades is int && data.totalTrades >= 0
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && (!('profitFactor' in data) || data.profitFactor is number);
+    }
+
+    function isValidConnectedWallet(data, userId) {
+      return data.keys().hasAll(['userId', 'publicAddress', 'provider', 'network', 'connectedAt'])
+        && data.keys().hasOnly(['userId', 'publicAddress', 'provider', 'network', 'connectedAt'])
+        && data.userId == userId
+        && data.publicAddress is string && data.publicAddress.size() >= 32 && data.publicAddress.size() <= 64
+        && data.provider in ['Phantom', 'Solflare', 'ReadOnly', 'Other']
+        && data.network in ['mainnet-beta', 'devnet']
+        && data.connectedAt is string && data.connectedAt.size() <= 64;
+    }
+
+    function isValidAuditLog(data, userId) {
+      return data.keys().hasAll(['userId', 'action', 'detail', 'timestamp'])
+        && data.keys().hasOnly(['userId', 'action', 'detail', 'timestamp'])
+        && data.userId == userId
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 100
+        && data.detail is string && data.detail.size() >= 1 && data.detail.size() <= 500
+        && data.timestamp is string && data.timestamp.size() <= 64;
+    }
+
+    function isValidManagedAccount(data, userId) {
+      return data.keys().hasAll(['userId', 'name', 'kind', 'riskProfile', 'mandateMode', 'allocatedUsd', 'maxPositionPct', 'stopLossPct', 'takeProfitPct', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'name', 'kind', 'walletAddress', 'walletProvider', 'riskProfile', 'mandateMode', 'allocatedUsd', 'maxPositionPct', 'stopLossPct', 'takeProfitPct', 'createdAt', 'updatedAt'])
+        && data.userId == userId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 60
+        && data.kind in ['PAPER_DESK', 'SOLANA_WALLET']
+        && data.riskProfile in ['CONSERVATIVE', 'BALANCED', 'AGGRESSIVE']
+        && data.mandateMode in ['ADVISORY_ONLY', 'PAPER_AUTOPILOT']
+        && data.allocatedUsd is number && data.allocatedUsd >= 0 && data.allocatedUsd <= 1000000000
+        && data.maxPositionPct is number && data.maxPositionPct >= 1 && data.maxPositionPct <= 100
+        && data.stopLossPct is number && data.stopLossPct >= 1 && data.stopLossPct <= 95
+        && data.takeProfitPct is number && data.takeProfitPct >= 1 && data.takeProfitPct <= 1000
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && (!('walletAddress' in data) || (data.walletAddress is string && data.walletAddress.size() >= 32 && data.walletAddress.size() <= 64))
+        && (!('walletProvider' in data) || data.walletProvider in ['Phantom', 'Solflare', 'ReadOnly', 'Paper']);
+    }
+
+    function isValidTradeProposal(data, userId) {
+      return data.keys().hasAll(['userId', 'accountId', 'action', 'mint', 'symbol', 'name', 'currentPriceUsd', 'suggestedUsd', 'suggestedQuantity', 'confidenceScore', 'riskLevel', 'reason', 'status', 'sourceAgent', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'accountId', 'action', 'mint', 'symbol', 'name', 'currentPriceUsd', 'suggestedUsd', 'suggestedQuantity', 'confidenceScore', 'riskLevel', 'reason', 'status', 'sourceAgent', 'createdAt'])
+        && data.userId == userId
+        && data.accountId is string && data.accountId.size() >= 1 && data.accountId.size() <= 128
+        && data.action in ['BUY', 'SELL', 'TRIM', 'HOLD']
+        && data.mint is string && data.mint.size() >= 20 && data.mint.size() <= 64
+        && data.symbol is string && data.symbol.size() >= 1 && data.symbol.size() <= 32
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.currentPriceUsd is number && data.currentPriceUsd >= 0
+        && data.suggestedUsd is number && data.suggestedUsd >= 0
+        && data.suggestedQuantity is number && data.suggestedQuantity >= 0
+        && data.confidenceScore is number && data.confidenceScore >= 0 && data.confidenceScore <= 100
+        && data.riskLevel in ['LOW', 'MODERATE', 'HIGH', 'CRITICAL', 'UNKNOWN']
+        && data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 500
+        && data.status in ['PENDING', 'EXECUTED_PAPER', 'DISMISSED']
+        && data.sourceAgent is string && data.sourceAgent.size() >= 1 && data.sourceAgent.size() <= 100
+        && data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidWatchedWallet(data, userId) {
+      return data.keys().hasAll(['userId', 'address', 'label', 'addedAt'])
+        && data.keys().hasOnly(['userId', 'address', 'label', 'notes', 'addedAt'])
+        && data.userId == userId
+        && data.address is string && data.address.size() >= 32 && data.address.size() <= 64
+        && data.label is string && data.label.size() >= 1 && data.label.size() <= 60
+        && data.addedAt is string && data.addedAt.size() <= 64
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+
+      match /watchlists/{tokenMint} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(tokenMint) && isValidWatchlistToken(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(tokenMint) && isValidWatchlistToken(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(tokenMint);
+      }
+
+      match /wallet_watchlists/{walletAddress} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(walletAddress) && isValidWatchedWallet(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(walletAddress) && isValidWatchedWallet(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(walletAddress);
+      }
+
+      match /paper_positions/{tokenMint} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(tokenMint) && isValidPaperPosition(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(tokenMint) && isValidPaperPosition(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(tokenMint);
+      }
+
+      match /paper_orders/{orderId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(orderId) && isValidPaperOrder(incoming(), userId);
+      }
+
+      match /alerts/{alertId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(alertId) && isValidUserAlert(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(alertId) && isValidUserAlert(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(alertId);
+      }
+
+      match /backtests/{backtestId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(backtestId) && isValidBacktestRecord(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(backtestId);
+      }
+
+      match /connected_wallets/{walletAddress} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(walletAddress) && isValidConnectedWallet(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(walletAddress);
+      }
+
+      match /audit_logs/{logId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidAuditLog(incoming(), userId);
+      }
+
+      match /managed_accounts/{accountId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(accountId) && isValidManagedAccount(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(accountId)
+          && isValidManagedAccount(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(accountId);
+      }
+
+      match /trade_proposals/{proposalId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(proposalId) && isValidTradeProposal(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(proposalId)
+          && isValidTradeProposal(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(proposalId);
+      }
+    }
+  }
+}
